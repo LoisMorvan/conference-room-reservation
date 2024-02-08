@@ -1,0 +1,17 @@
+{
+  "name": "user",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha tests/unit/"
+  },
+  "devDependencies": {
+    "chai": "^4.3.6",
+    "mocha": "^10.1.0"
+  },
+  "dependencies": {
+    "firebase": "^10.8.0",
+    "firebase-admin": "^12.0.0"
+  }
+}

@@ -1,0 +1,47 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: "AWS::Serverless-2016-10-31"
+Description: Conference Room Reservation App
+
+Globals:
+  Function:
+    Runtime: nodejs18.x
+    Timeout: 20
+
+Resources:
+  RegisterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: user/register.handler
+      Events:
+        RegisterApi:
+          Type: Api
+          Properties:
+            Path: /register
+            Method: post
+
+  LoginFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: user/login.handler
+      Events:
+        LoginApi:
+          Type: Api
+          Properties:
+            Path: /login
+            Method: post
+
+  ReservationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: reservation/app.handler
+      Events:
+        ReservationApi:
+          Type: Api
+          Properties:
+            Path: /reservation
+            Method: post
+
+Outputs:
+  ReservationApi:
+    Description: "API Gateway endpoint URL for Reservations"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
