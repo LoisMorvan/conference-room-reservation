@@ -5,9 +5,25 @@ Description: Conference Room Reservation App
 Globals:
   Function:
     Runtime: nodejs18.x
-    Timeout: 20
+    Timeout: 30
 
 Resources:
+  API:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: dev
+      Auth:
+        DefaultAuthorizer: TokenAuthorizer
+        Authorizers:
+          TokenAuthorizer:
+            FunctionPayloadType: TOKEN
+            FunctionArn: !GetAtt AuthorizerFunction.Arn
+
+  AuthorizerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: reservation/authorizer.handler
+
   RegisterFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -33,11 +49,12 @@ Resources:
   ReservationFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: reservation/app.handler
+      Handler: reservation/reservation.handler
       Events:
         ReservationApi:
           Type: Api
           Properties:
+            RestApiId: !Ref API
             Path: /reservation
             Method: post
 
