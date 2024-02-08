@@ -1,8 +1,10 @@
 import { MongoClient, ServerApiVersion } from "mongodb";
 import mailgun from 'mailgun.js';
 import FormData from 'form-data';
+import { reservationSchema } from './validation/reservationSchema.mjs';
+import 'dotenv/config';
 
-const uri = 'mongodb+srv://lmorvan:lmorvan@lambda.v6kkphq.mongodb.net/?retryWrites=true&w=majority';
+const uri = process.env.MONGODB_URI;
 const client = new MongoClient(uri, {
     serverApi: {
         version: ServerApiVersion.v1,
@@ -14,20 +16,30 @@ const client = new MongoClient(uri, {
 const Mailgun = new mailgun(FormData);
 const mg = Mailgun.client({
     username: 'api',
-    key: '5eadd1283683e8f1878561e7fddb4ab3-8c90f339-505a2aa6',
+    key: process.env.MAILGUN_PRIVATE_KEY,
 });
 
 export const handler = async (event) => {
     try {
-        const requestBody = JSON.parse(event.body);
-        const { roomNumber, date, details } = requestBody;
+        const reservationData = JSON.parse(event.body);
+        const result = reservationSchema.safeParse(reservationData);
 
-        // zod 
+        if (!result.success) {
+            return {
+                statusCode: 400,
+                body: JSON.stringify(result.error),
+            };
+        }
 
-        const isAvailable = await checkAvailability(roomNumber, date);
+        const { roomNumber, date, details } = result.data;
+
+        const options = { year: 'numeric', month: 'numeric', day: 'numeric' };
+        const formattedDate = new Intl.DateTimeFormat('fr-FR', options).format(date);
+
+        const isAvailable = await checkAvailability(roomNumber, formattedDate);
 
         if (isAvailable) {
-            await createReservation(roomNumber, date, details);
+            await createReservation(roomNumber, formattedDate, details);
 
             await sendNotification(roomNumber, date, details);
 
@@ -91,13 +103,15 @@ export async function createReservation(roomNumber, date, details) {
 }
 
 export async function sendNotification(roomNumber, date, details) {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const formattedDate = new Intl.DateTimeFormat('fr-FR', options).format(date);
     // Envoie une notification par mail
     mg.messages
         .create("sandbox467e602e6782426b9b03cfbbe46dd44a.mailgun.org", {
             from: "Mailgun Sandbox <postmaster@sandbox467e602e6782426b9b03cfbbe46dd44a.mailgun.org>",
-            to: ["lois.morvan@laposte.net"],
+            to: [process.env.MAILGUN_EMAIL],
             subject: 'Réservation accepté',
-            text: `La réservation de la salle ${roomNumber} le ${date} à été accepté.\n Détail : ${details}`,
+            text: `La réservation de la salle ${roomNumber} le ${formattedDate} à été accepté.\n Détail : ${details}`,
         })
         .then(msg => console.log(msg))
         .catch(err => console.log(err));
